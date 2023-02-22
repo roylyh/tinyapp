@@ -22,6 +22,10 @@ app.get("/urls.json", (req, res) => {
 }
 );
 
+app.post("/login", (req, res) => {
+  res.cookie("username", req.body.username).redirect("/urls");
+});
+
 app.get("/urls", (req, res) => {
   const templateVars = {urls:urlDatabase};
   res.render("urls_index", templateVars);
