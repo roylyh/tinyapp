@@ -14,7 +14,7 @@ const urlDatabase = {
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.send("Hello! Welcome to URL shorting application.");
 });
 
 app.get("/urls.json", (req, res) => {
@@ -47,6 +47,15 @@ app.get("/urls/:id", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   const id = req.params.id;
   delete urlDatabase[id];
+  res.redirect("/urls");
+}
+);
+
+// update the LongURL info
+app.post("/urls/:id", (req, res) => {
+  const id = req.params.id;
+  const longURL = req.body.longURL;
+  urlDatabase[id] = longURL;
   res.redirect("/urls");
 }
 );
