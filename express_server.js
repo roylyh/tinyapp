@@ -36,7 +36,9 @@ app.post("/logout", (req, res) => {
   res.clearCookie("username").redirect("/urls");
 });
 
-
+app.get("/register", (req, res) => {
+  res.render("urls_registration");
+});
 
 app.get("/urls", (req, res) => {
   const templateVars = {urls:urlDatabase, username: req.cookies.username, };
