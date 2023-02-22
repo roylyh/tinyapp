@@ -11,8 +11,9 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com",
 };
 
-// parse the dody
+// parse the body
 app.use(express.urlencoded({ extended: true }));
+// get the cookie info
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
@@ -20,16 +21,18 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls.json", (req, res) => {
+  // automatically transfer object to JSON
   res.json(urlDatabase);
 }
 );
 
 app.post("/login", (req, res) => {
+  // set the cookie and redirect (redirect means sending back msg to browser)
   res.cookie("username", req.body.username).redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
-  
+  // clearCookie value equals undefined
   res.clearCookie("username").redirect("/urls");
 });
 
