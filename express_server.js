@@ -39,26 +39,42 @@ app.get("/urls.json", (req, res) => {
 });
 
 app.get("/login",(req, res) => {
-  
-  res.cookie("user_id", req.body.user_id).redirect("/urls");
-  res.redirect("/urls");
+  const user = users[req.cookies.user_id];
+  const templateVars = { user: user };
+  res.render("urls_login", templateVars);
 }
 );
 
 app.post("/login", (req, res) => {
   // set the cookie and redirect (redirect means sending back msg to browser)
   const { email, password } = req.body;
+  if (!email || !password) {
+    res.status(400).send("E-mail and password are both needed.");
+  }
   // loop the urers and retrieve the user
-  res.cookie("user_id", req.body.user_id).redirect("/urls");// need to be modified user_id user.id
+  for (let key in users) {
+    if (users[key].email === email) {
+      if (users[key].password === password) {
+        res.cookie("user_id", key).redirect("/urls");
+        return;
+      } else {
+        res.status(400).send("Invalid password");
+        return;
+      }
+    }
+  }
+  res.status(403).send(`The email could not be found.${email}`);
 });
 
 app.post("/logout", (req, res) => {
   // clearCookie value equals undefined
-  res.clearCookie("user_id").redirect("/urls");
+  res.clearCookie("user_id").redirect("/login");
 });
 
 app.get("/register", (req, res) => {
-  res.render("urls_registration");
+  const user = users[req.cookies.user_id];
+  const templateVars = { user: user };
+  res.render("urls_registration", templateVars);
 });
 
 app.post("/register", (req, res) => {
@@ -66,7 +82,6 @@ app.post("/register", (req, res) => {
   if (!email || !password) {
     res.status(400).send("E-mail and password are both needed.");
   } else if (Object.keys(users).filter((key) => users[key].email === email).length) {
-    console.log("email:", email);
     res.status(400).send("E-mail has existed.");
   } else {
     const userRandomID = generateRandomString();
