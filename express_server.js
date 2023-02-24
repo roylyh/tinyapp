@@ -1,7 +1,7 @@
 const { PORT } = require("./constants");
 const { generateRandomString, urlsForUser, } = require("./util");
 const express = require("express");
-const cookieParser = require("cookie-parser");
+const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const morgan = require("morgan");
 const app = express();
@@ -35,7 +35,10 @@ const users = {
 // parse the body
 app.use(express.urlencoded({ extended: true }));
 // get the cookie info
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2']
+}));
 // use morgan
 app.use(morgan('dev'));
 
@@ -49,7 +52,7 @@ app.get("/urls.json", (req, res) => {
 });
 
 app.get("/login",(req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.userID];
   if (user) {
     res.redirect("/urls");
   } else {
@@ -71,8 +74,8 @@ app.post("/login", (req, res) => {
   for (let key in users) {
     if (users[key].email === email) {
       if (bcrypt.compareSync(password, users[key].password)) {
-        console.log(users[key].password);
-        return res.cookie("user_id", key).redirect("/urls");
+        req.session.userID = key;
+        return res.redirect("/urls");
       } else {
         return res.status(400).send("<html><body><b>Invalid password</b></body></html>");
       }
@@ -83,11 +86,11 @@ app.post("/login", (req, res) => {
 
 app.post("/logout", (req, res) => {
   // clearCookie value equals undefined
-  res.clearCookie("user_id").redirect("/login");
+  res.clearCookie("session").clearCookie("session.sig").redirect("/login");
 });
 
 app.get("/register", (req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.userID];
   if (user) {
     res.redirect("/urls");
   } else {
@@ -108,12 +111,13 @@ app.post("/register", (req, res) => {
     const userRandomID = generateRandomString();
     users[userRandomID] = { id: userRandomID, email, hashedPassword };
     console.log(users);
-    res.cookie("user_id", userRandomID).redirect("/urls");
+    req.session.userID = userRandomID;
+    res.redirect("/urls");
   }
 });
 
 app.get("/urls", (req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.userID];
   if (user) {
     // the URLs where the userID is equal to the id of the currently logged-in user
     const urlDatabaseForUser = urlsForUser(user.id, urlDatabase);
@@ -125,7 +129,7 @@ app.get("/urls", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.userID];
   if (user) {
     const id = generateRandomString();
     urlDatabase[id] = {longURL: req.body.longURL, userID: user.id,};
@@ -136,7 +140,7 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.userID];
   if (user) {
     const templateVars = { user: user };
     res.render("urls_new", templateVars);
@@ -148,7 +152,7 @@ app.get("/urls/new", (req, res) => {
 
 
 app.get("/urls/:id", (req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.userID];
   if (user) {
     if (urlDatabase[req.params.id].userID === user.id) {
       const templateVars = {
@@ -166,7 +170,7 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.userID];
   const shortUrl = req.params.id;
   // if the shorURL exit
   if (Object.keys(urlDatabase).includes(shortUrl)) {
@@ -190,7 +194,7 @@ app.post("/urls/:id/delete", (req, res) => {
 
 // update the LongURL info
 app.post("/urls/:id", (req, res) => {
-  const user = users[req.cookies.user_id];
+  const user = users[req.session.userID];
   // if user logged in
   if (user) {
     const shortUrl = req.params.id;
