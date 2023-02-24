@@ -2,6 +2,8 @@ const { PORT } = require("./constants");
 const { generateRandomString, urlsForUser, } = require("./util");
 const express = require("express");
 const cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs");
+const morgan = require("morgan");
 const app = express();
 // res.status(400);
 app.set("view engine", "ejs");
@@ -25,8 +27,8 @@ const users = {
   },
   user2RandomID: {
     id: "user2RandomID",
-    email: "user2@example.com",
-    password: "dishwasher-funk",
+    email: "3@3.com",
+    password: "$2a$10$IEVRUSW.pUoDeBY3F.5XyO7PEFRhB6s.Cs1nWxcIgDzo5us.q5w9S",
   },
 };
 
@@ -34,6 +36,8 @@ const users = {
 app.use(express.urlencoded({ extended: true }));
 // get the cookie info
 app.use(cookieParser());
+// use morgan
+app.use(morgan('dev'));
 
 app.get("/", (req, res) => {
   res.send("Hello! Welcome to URL shorting application.");
@@ -55,22 +59,22 @@ app.get("/login",(req, res) => {
 }
 );
 
+// Loggin in
+// redirect to urls index page if credentials are valid
 app.post("/login", (req, res) => {
   // set the cookie and redirect (redirect means sending back msg to browser)
   const { email, password } = req.body;
   if (!email || !password) {
-    res.status(400).send("<html><body><b>E-mail and password are both needed.</b></body></html>");
-    return;
+    return res.status(400).send("<html><body><b>E-mail and password are both needed.</b></body></html>");
   }
   // loop the urers and retrieve the user
   for (let key in users) {
     if (users[key].email === email) {
-      if (users[key].password === password) {
-        res.cookie("user_id", key).redirect("/urls");
-        return;
+      if (bcrypt.compareSync(password, users[key].password)) {
+        console.log(users[key].password);
+        return res.cookie("user_id", key).redirect("/urls");
       } else {
-        res.status(400).send("<html><body><b>Invalid password</b></body></html>");
-        return;
+        return res.status(400).send("<html><body><b>Invalid password</b></body></html>");
       }
     }
   }
@@ -99,8 +103,11 @@ app.post("/register", (req, res) => {
   } else if (Object.keys(users).filter((key) => users[key].email === email).length) {
     res.status(400).send("<html><body><b>E-mail has existed.</b></body></html>");
   } else {
+    // Use bcrypt When Storing Password
+    const hashedPassword = bcrypt.hashSync(password, 10);
     const userRandomID = generateRandomString();
-    users[userRandomID] = { id: userRandomID, email, password };
+    users[userRandomID] = { id: userRandomID, email, hashedPassword };
+    console.log(users);
     res.cookie("user_id", userRandomID).redirect("/urls");
   }
 });
