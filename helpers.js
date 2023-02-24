@@ -15,4 +15,13 @@ const urlsForUser = function(id, urlDatabase) {
   return result;
 };
 
-module.exports = { generateRandomString, urlsForUser, };
+const getUserByEmail = function(email, database) {
+  for (let user in database) {
+    if (database[user].email === email) {
+      return database[user];
+    }
+  }
+  return undefined;
+};
+
+module.exports = { generateRandomString, urlsForUser, getUserByEmail, };

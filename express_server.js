@@ -1,5 +1,5 @@
 const { PORT } = require("./constants");
-const { generateRandomString, urlsForUser, } = require("./util");
+const { generateRandomString, urlsForUser, getUserByEmail, } = require("./helpers");
 const express = require("express");
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
@@ -68,20 +68,20 @@ app.post("/login", (req, res) => {
   // set the cookie and redirect (redirect means sending back msg to browser)
   const { email, password } = req.body;
   if (!email || !password) {
-    return res.status(400).send("<html><body><b>E-mail and password are both needed.</b></body></html>");
-  }
-  // loop the urers and retrieve the user
-  for (let key in users) {
-    if (users[key].email === email) {
-      if (bcrypt.compareSync(password, users[key].password)) {
-        req.session.userID = key;
-        return res.redirect("/urls");
+    res.status(400).send("<html><body><b>E-mail and password are both needed.</b></body></html>");
+  } else {
+    const user = getUserByEmail(email, users);
+    if (user) {
+      if (bcrypt.compareSync(password, user.password)) {
+        req.session.userID = user.id;
+        res.redirect("/urls");
       } else {
-        return res.status(400).send("<html><body><b>Invalid password</b></body></html>");
+        res.status(400).send("<html><body><b>Invalid password</b></body></html>");
       }
+    } else {
+      res.status(403).send(`<html><body><b>The email could not be found.${email}</b></body></html>`);
     }
   }
-  res.status(403).send(`<html><body><b>The email could not be found.${email}</b></body></html>`);
 });
 
 app.post("/logout", (req, res) => {
@@ -103,7 +103,7 @@ app.post("/register", (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     res.status(400).send("<html><body><b>E-mail and password are both needed.</b></body></html>");
-  } else if (Object.keys(users).filter((key) => users[key].email === email).length) {
+  } else if (getUserByEmail(email, users)) {
     res.status(400).send("<html><body><b>E-mail has existed.</b></body></html>");
   } else {
     // Use bcrypt When Storing Password
