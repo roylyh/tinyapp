@@ -3,34 +3,11 @@ const { generateRandomString, urlsForUser, getUserByEmail, } = require("./helper
 const express = require("express");
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
-const morgan = require("morgan");
 const app = express();
-// res.status(400);
 app.set("view engine", "ejs");
 
-const urlDatabase = {
-  b6UTxQ: {
-    longURL: "https://www.tsn.ca",
-    userID: "userRandomID",
-  },
-  i3BoGr: {
-    longURL: "https://www.google.ca",
-    userID: "user2RandomID",
-  },
-};
-
-const users = {
-  userRandomID: {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: "purple-monkey-dinosaur",
-  },
-  user2RandomID: {
-    id: "user2RandomID",
-    email: "3@3.com",
-    password: "$2a$10$IEVRUSW.pUoDeBY3F.5XyO7PEFRhB6s.Cs1nWxcIgDzo5us.q5w9S",
-  },
-};
+const urlDatabase = {};
+const users = {};
 
 // parse the body
 app.use(express.urlencoded({ extended: true }));
@@ -39,18 +16,19 @@ app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2']
 }));
-// use morgan
-app.use(morgan('dev'));
 
+// Routing
+
+// redirect to /urls if logged in, other
 app.get("/", (req, res) => {
-  res.send("Hello! Welcome to URL shorting application.");
+  if (req.session.userID) {
+    res.redirect('/urls');
+  } else {
+    res.redirect('/login');
+  }
 });
 
-app.get("/urls.json", (req, res) => {
-  // automatically transfer object to JSON
-  res.json(urlDatabase);
-});
-
+// redirect to urls page if logged in
 app.get("/login",(req, res) => {
   const user = users[req.session.userID];
   if (user) {
@@ -62,13 +40,12 @@ app.get("/login",(req, res) => {
 }
 );
 
-// Loggin in
 // redirect to urls index page if credentials are valid
 app.post("/login", (req, res) => {
   // set the cookie and redirect (redirect means sending back msg to browser)
   const { email, password } = req.body;
   if (!email || !password) {
-    res.status(400).send("<html><body><b>E-mail and password are both needed.</b></body></html>");
+    res.status(400).send("<html><body><b>please provide a username AND password.</b></body></html>");
   } else {
     const user = getUserByEmail(email, users);
     if (user) {
@@ -76,19 +53,21 @@ app.post("/login", (req, res) => {
         req.session.userID = user.id;
         res.redirect("/urls");
       } else {
-        res.status(400).send("<html><body><b>Invalid password</b></body></html>");
+        res.status(400).send("<html><body><b>password do not match</b></body></html>");
       }
     } else {
-      res.status(403).send(`<html><body><b>The email could not be found.${email}</b></body></html>`);
+      res.status(403).send(`<html><body><b>no user with ${email} found</b></body></html>`);
     }
   }
 });
 
+// logout clear cookies
 app.post("/logout", (req, res) => {
   // clearCookie value equals undefined
   res.clearCookie("session").clearCookie("session.sig").redirect("/login");
 });
 
+// redirect to urls page if logged in
 app.get("/register", (req, res) => {
   const user = users[req.session.userID];
   if (user) {
@@ -99,23 +78,24 @@ app.get("/register", (req, res) => {
   }
 });
 
+// redirect to urls page if credential is valid
 app.post("/register", (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    res.status(400).send("<html><body><b>E-mail and password are both needed.</b></body></html>");
+    res.status(400).send("<html><body><b>please provide a username AND password.</b></body></html>");
   } else if (getUserByEmail(email, users)) {
-    res.status(400).send("<html><body><b>E-mail has existed.</b></body></html>");
+    res.status(400).send("<html><body><b>user with this email found.</b></body></html>");
   } else {
     // Use bcrypt When Storing Password
     const hashedPassword = bcrypt.hashSync(password, 10);
     const userRandomID = generateRandomString();
-    users[userRandomID] = { id: userRandomID, email, hashedPassword };
-    console.log(users);
+    users[userRandomID] = { id: userRandomID, email, password: hashedPassword };
     req.session.userID = userRandomID;
     res.redirect("/urls");
   }
 });
 
+// show urls that belong to the user
 app.get("/urls", (req, res) => {
   const user = users[req.session.userID];
   if (user) {
@@ -128,6 +108,7 @@ app.get("/urls", (req, res) => {
   }
 });
 
+// add new url to database
 app.post("/urls", (req, res) => {
   const user = users[req.session.userID];
   if (user) {
@@ -139,6 +120,7 @@ app.post("/urls", (req, res) => {
   }
 });
 
+// validate if the user logged in
 app.get("/urls/new", (req, res) => {
   const user = users[req.session.userID];
   if (user) {
@@ -149,8 +131,7 @@ app.get("/urls/new", (req, res) => {
   }
 });
   
-
-
+// shows the details if it belong to the user
 app.get("/urls/:id", (req, res) => {
   const user = users[req.session.userID];
   if (user) {
@@ -169,6 +150,7 @@ app.get("/urls/:id", (req, res) => {
   }
 });
 
+// delete the url if it belong to the user
 app.post("/urls/:id/delete", (req, res) => {
   const user = users[req.session.userID];
   const shortUrl = req.params.id;
@@ -216,6 +198,7 @@ app.post("/urls/:id", (req, res) => {
   }
 });
 
+// redirect to the actual url
 app.get("/u/:id", (req, res) => {
   const longURL = urlDatabase[req.params.id].longURL;
   if (longURL) {
@@ -225,10 +208,7 @@ app.get("/u/:id", (req, res) => {
   }
 });
 
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
-
+// server listen
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
 });
