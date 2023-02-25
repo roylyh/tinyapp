@@ -23,8 +23,8 @@ const urlDatabase = {
     longURL: "http://www.reddit.com",
     userID: "userRandomID",
     totalClicks: 0,
-    uniqueVisitors: [],
-    visitHistory: [],
+    uniqueVisitors: [],// userID
+    visitHistory: [], // {timestamp:Date,visitorID:userID}
   },
 };
 const users = {
@@ -211,7 +211,8 @@ app.get("/urls/:id", (req, res) => {
     if (urlDatabase[req.params.id].userID === user.id) {
       const templateVars = {
         id: req.params.id,
-        longURL: urlDatabase[req.params.id].longURL,
+        // longURL: urlDatabase[req.params.id].longURL,
+        urlObj: urlDatabase[req.params.id],
         user: user,
       };
       res.render("urls_show", templateVars);
@@ -314,7 +315,6 @@ app.get("/u/:id", (req, res) => {
       }
       urlDatabase[req.params.id].visitHistory.push({timeStamp: new Date().toLocaleString(), vistorID: userID});
       urlDatabase[req.params.id].totalClicks++;
-      console.log(urlDatabase);
       res.redirect(longURL);
     } else {
       res
