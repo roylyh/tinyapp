@@ -3,6 +3,7 @@ const { generateRandomString, urlsForUser, getUserByEmail, } = require("./helper
 const express = require("express");
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
+const methodOverride = require("method-override");
 const app = express();
 app.set("view engine", "ejs");
 
@@ -16,6 +17,7 @@ app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2']
 }));
+app.use(methodOverride("_method"));
 
 // Routing
 
@@ -151,7 +153,7 @@ app.get("/urls/:id", (req, res) => {
 });
 
 // delete the url if it belong to the user
-app.post("/urls/:id/delete", (req, res) => {
+app.delete("/urls/:id", (req, res) => {
   const user = users[req.session.userID];
   const shortUrl = req.params.id;
   // if the shorURL exit
@@ -175,7 +177,7 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 // update the LongURL info
-app.post("/urls/:id", (req, res) => {
+app.put("/urls/:id", (req, res) => {
   const user = users[req.session.userID];
   // if user logged in
   if (user) {
