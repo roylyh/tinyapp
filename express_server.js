@@ -45,7 +45,7 @@ app.post("/login", (req, res) => {
   // set the cookie and redirect (redirect means sending back msg to browser)
   const { email, password } = req.body;
   if (!email || !password) {
-    res.status(400).send("<html><body><b>please provide a username AND password.</b></body></html>");
+    res.status(400).send("<html><body><b>please provide a username AND password.</b> <a href='/login'>Try it again</a></body></html>");
   } else {
     const user = getUserByEmail(email, users);
     if (user) {
@@ -53,10 +53,10 @@ app.post("/login", (req, res) => {
         req.session.userID = user.id;
         res.redirect("/urls");
       } else {
-        res.status(400).send("<html><body><b>password do not match</b></body></html>");
+        res.status(400).send("<html><body><b>password do not match</b> <a href='/login'>Try it again</a></body></html>");
       }
     } else {
-      res.status(403).send(`<html><body><b>no user with ${email} found</b></body></html>`);
+      res.status(403).send(`<html><body><b>no user with ${email} found</b>. Register first. <a href="/register">register now</a></body></html>`);
     }
   }
 });
@@ -82,9 +82,9 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    res.status(400).send("<html><body><b>please provide a username AND password.</b></body></html>");
+    res.status(400).send("<html><body><b>please provide a username AND password.</b> <a href='/register'>Try it again</a></body></html>");
   } else if (getUserByEmail(email, users)) {
-    res.status(400).send("<html><body><b>user with this email found.</b></body></html>");
+    res.status(400).send("<html><body><b>user with this email found.</b> Go to <a href='/login'>Login</a> Page</body></html>");
   } else {
     // Use bcrypt When Storing Password
     const hashedPassword = bcrypt.hashSync(password, 10);
@@ -104,7 +104,7 @@ app.get("/urls", (req, res) => {
     const templateVars = { urls: urlDatabaseForUser, user: user };
     res.render("urls_index", templateVars);
   } else {
-    res.status(403).send("<html><body>Sorry. Please <b>Login</b></body></html>");
+    res.status(403).send("<html><body>Sorry. Please <b>Login</b> Go to <a href='/login'>Login</a> Page</body></html>");
   }
 });
 
@@ -116,7 +116,7 @@ app.post("/urls", (req, res) => {
     urlDatabase[id] = {longURL: req.body.longURL, userID: user.id,};
     res.redirect(`/urls/${id}`);
   } else {
-    res.status(403).send("<html><body>Sorry. Please <b>Login</b></body></html>");
+    res.status(403).send("<html><body>Sorry. Please go to <a href='/login'>Login</a> Page.</body></html>");
   }
 });
 
@@ -143,10 +143,10 @@ app.get("/urls/:id", (req, res) => {
       };
       res.render("urls_show", templateVars);
     } else {
-      res.status(403).send("<html><body>This individual URL pages should not be accesible if the URL does not belong to you.</body></html>");
+      res.status(403).send("<html><body>This individual URL pages should not be accesible if the URL does not belong to you. Check your URL list <a href='/urls'>here</a></body></html>");
     }
   } else {
-    res.status(403).send("<html><body>Sorry. Please <b>Login</b></body></html>");
+    res.status(403).send("<html><body>Sorry. Please go to <a href='/login'>Login</a> Page.</body></html>");
   }
 });
 
@@ -163,13 +163,13 @@ app.post("/urls/:id/delete", (req, res) => {
         delete urlDatabase[shortUrl];
         res.redirect("/urls");
       } else {
-        res.status(403).send("<html><body>You doesn't own the URL.</body></html>");
+        res.status(403).send("<html><body>You doesn't own the URL. Check your URL list <a href='/urls'>here</a></body></html>");
       }
     } else {
-      res.status(403).send("<html><body>Sorry. Please <b>Login</b></body></html>");
+      res.status(403).send("<html><body>Sorry. Please go to <a href='/login'>Login</a> Page.</body></html>");
     }
   } else {
-    res.status(400).send("<html><body>The shortUrl doesn't not exist.</body></html>");
+    res.status(400).send("<html><body>The shortUrl doesn't not exist. Check your URL list <a href='/urls'>here</a></body></html>");
   }
   
 });
@@ -188,13 +188,13 @@ app.post("/urls/:id", (req, res) => {
         urlDatabase[shortUrl].longURL = longURL;
         res.redirect("/urls");
       } else {
-        res.status(403).send("<html><body>You doesn't own the URL.</body></html>");
+        res.status(403).send("<html><body>You doesn't own the URL. Check your URL list <a href='/urls'>here</a></body></html>");
       }
     } else {
-      res.status(400).send("<html><body>The shortUrl doesn't not exist.</body></html>");
+      res.status(400).send("<html><body>The shortUrl doesn't not exist. Check your URL list <a href='/urls'>here</a></body></html>");
     }
   } else {
-    res.status(403).send("<html><body>Sorry. Please <b>Login</b></body></html>");
+    res.status(403).send("<html><body>Sorry. Please go to <a href='/login'>Login</a> Page.</body></html>");
   }
 });
 
@@ -204,7 +204,7 @@ app.get("/u/:id", (req, res) => {
   if (longURL) {
     res.redirect(longURL);
   } else {
-    res.status(406).send(`<html><body><b>${req.params.id}</b> could not found</body></html>`);
+    res.status(406).send(`<html><body><b>${req.params.id}</b> could not found. Check your URL list <a href='/urls'>here</a></body></html>`);
   }
 });
 
